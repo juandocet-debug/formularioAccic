@@ -54,13 +54,13 @@ def _row_values(row: dict) -> list[str]:
     )
     return [
         str(row["id"]),
-        row["document_number"],
+        str(row["document_number"]),
         full_name,
-        row["phone"],
+        str(row["phone"]),
         ", ".join(row.get("interested_courses", [])),
-        row["group_name"],
-        row["place"],
-        row["days"],
-        row["schedule"],
-        row["created_at"],
+        str(row["group_name"]),
+        str(row["place"]),
+        str(row["days"]),
+        str(row["schedule"]),
+        str(row["created_at"]),
     ]
