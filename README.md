@@ -43,6 +43,8 @@ npm run dev
 - Vercel: desplegar `frontend`, configurar `VITE_API_BASE_URL=https://tu-backend.railway.app/api`.
 - Railway: desplegar `backend`, agregar PostgreSQL en el mismo proyecto y configurar `DATABASE_URL`, `JWT_SECRET`, `ADMIN_USERNAME`, `ADMIN_PASSWORD` y `CORS_ORIGINS`.
 
+El repositorio incluye un `Dockerfile` raiz para Railway. Si Railway toma la raiz del repo, construira solamente el backend.
+
 ## Seguridad aplicada
 
 - Login admin con token firmado HS256 y expiracion.
