@@ -98,9 +98,14 @@ export function PublicRegistrationForm() {
         {message && <p className="success"><CheckCircle2 size={18} /> {message}</p>}
         {error && <p className="error">{error}</p>}
 
-        <button className="primary-button" type="submit" disabled={loading}>
-          Registrar seleccion
-        </button>
+        <div className="form-actions">
+          <button className="primary-button" type="submit" disabled={loading}>
+            Registrar seleccion
+          </button>
+          <button className="ghost-button" type="button" onClick={() => setForm(emptyForm)}>
+            Limpiar formulario
+          </button>
+        </div>
       </form>
     </section>
   );

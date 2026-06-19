@@ -87,7 +87,7 @@ function Dashboard({ token, onSignOut }: { token: string; onSignOut: () => void 
           <option value="available">Con cupo</option>
           <option value="full">Sin cupo</option>
         </select>
-        <button className="primary-button small" onClick={() => panel.load()}>Filtrar</button>
+        <button className="primary-button small" onClick={panel.applyFilters}>Filtrar</button>
       </div>
 
       {panel.error && <p className="error">{panel.error}</p>}
@@ -99,6 +99,26 @@ function Dashboard({ token, onSignOut }: { token: string; onSignOut: () => void 
             : `${panel.total} respuestas registradas`}
       </p>
       <RegistrationTable rows={panel.registrations} onSave={panel.save} onDelete={panel.remove} />
+      <div className="pagination-bar">
+        <span>
+          {panel.total === 0
+            ? "Sin registros"
+            : `Mostrando ${panel.offset + 1}-${Math.min(panel.offset + panel.registrations.length, panel.total)} de ${panel.total}`}
+        </span>
+        <div>
+          <button className="ghost-button small" type="button" onClick={panel.previousPage} disabled={panel.offset === 0}>
+            Anterior
+          </button>
+          <button
+            className="ghost-button small"
+            type="button"
+            onClick={panel.nextPage}
+            disabled={panel.offset + panel.pageSize >= panel.total}
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
     </section>
   );
 }
