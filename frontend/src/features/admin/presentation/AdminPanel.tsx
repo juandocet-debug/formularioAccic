@@ -80,7 +80,7 @@ function Dashboard({ token, onSignOut }: { token: string; onSignOut: () => void 
         <input type="date" value={panel.filters.date ?? ""} onChange={(e) => panel.setFilters({ ...panel.filters, date: e.target.value })} />
         <select value={panel.filters.group_id ?? ""} onChange={(e) => panel.setFilters({ ...panel.filters, group_id: e.target.value })}>
           <option value="">Todos los grupos</option>
-          {[1, 2, 3, 4, 5, 6, 9, 10].map((groupId) => <option key={groupId} value={groupId}>Grupo {groupId}</option>)}
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((groupId) => <option key={groupId} value={groupId}>Grupo {groupId}</option>)}
         </select>
         <select value={panel.filters.capacity_status ?? ""} onChange={(e) => panel.setFilters({ ...panel.filters, capacity_status: e.target.value })}>
           <option value="">Todos los cupos</option>
@@ -219,7 +219,7 @@ function RegistrationTable({
                 <td>
                   {activeDraft ? (
                     <select value={activeDraft.group_id} onChange={(e) => setDraft({ ...activeDraft, group_id: Number(e.target.value) })}>
-                      {[1, 2, 3, 4, 5, 6, 9, 10].map((groupId) => <option key={groupId} value={groupId}>Grupo {groupId}</option>)}
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((groupId) => <option key={groupId} value={groupId}>Grupo {groupId}</option>)}
                     </select>
                   ) : (
                     row.group_name
@@ -229,7 +229,7 @@ function RegistrationTable({
                 <td>{new Date(row.created_at).toLocaleString("es-CO")}</td>
                 <td className="row-actions">
                   {activeDraft ? (
-                    <button className="icon-button" title="Guardar" onClick={() => onSave(row.id, activeDraft).then(() => setEditingId(null))}><Save size={16} /></button>
+                    <button className="primary-button small" title="Confirmar cambios" onClick={() => onSave(row.id, activeDraft).then(() => setEditingId(null))}><Save size={14} />Guardar</button>
                   ) : (
                     <button className="icon-button" title="Editar" onClick={() => startEdit(row)}><Pencil size={16} /></button>
                   )}
