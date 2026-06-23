@@ -1,9 +1,10 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.domain.courses import normalize_courses
 
 
 class RegistrationInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     first_name: str = Field(min_length=2, max_length=80)
     second_name: str | None = Field(default=None, max_length=80)
     first_last_name: str = Field(min_length=2, max_length=80)
@@ -48,5 +49,6 @@ class RegistrationInput(BaseModel):
 
 
 class LoginInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     username: str = Field(min_length=3, max_length=80)
     password: str = Field(min_length=8, max_length=120)

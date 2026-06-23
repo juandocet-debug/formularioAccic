@@ -16,7 +16,7 @@ const emptyForm: RegistrationPayload = {
 };
 
 export function PublicRegistrationForm() {
-  const { groups, loading, message, error, submit } = usePublicRegistration();
+  const { groups, loading, submitting, message, error, submit } = usePublicRegistration();
   const [form, setForm] = useState<RegistrationPayload>(emptyForm);
 
   async function onSubmit(event: FormEvent) {
@@ -99,8 +99,8 @@ export function PublicRegistrationForm() {
         {error && <p className="error">{error}</p>}
 
         <div className="form-actions">
-          <button className="primary-button" type="submit" disabled={loading}>
-            Registrar seleccion
+          <button className="primary-button" type="submit" disabled={loading || submitting}>
+            {submitting ? "Guardando..." : "Registrar seleccion"}
           </button>
           <button className="ghost-button" type="button" onClick={() => setForm(emptyForm)}>
             Limpiar formulario

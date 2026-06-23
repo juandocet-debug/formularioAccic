@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 from app.application.registration_service import RegistrationService
 from app.domain.errors import DomainError
-from app.infrastructure.http.dependencies import domain_error_response, get_registration_service
+from app.infrastructure.http.dependencies import domain_error_response, get_registration_service, public_registration_rate_limit
 from app.infrastructure.http.schemas import RegistrationInput
 
 router = APIRouter()
@@ -17,6 +17,7 @@ def list_groups(service: RegistrationService = Depends(get_registration_service)
 def create_registration(
     payload: RegistrationInput,
     service: RegistrationService = Depends(get_registration_service),
+    _: None = Depends(public_registration_rate_limit),
 ) -> dict:
     try:
         return service.create_public_registration(payload.model_dump())

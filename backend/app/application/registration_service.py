@@ -1,5 +1,6 @@
 from typing import Any
 
+from app.application.capacity_cache import get_capacity_summary, invalidate_capacity_summary
 from app.application.dtos import capacity_to_response, registration_to_response
 from app.domain.errors import DuplicateDocumentError, GroupFullError, GroupNotFoundError, RegistrationNotFoundError
 from app.domain.groups import GROUP_CAPACITY, get_group
@@ -11,13 +12,15 @@ class RegistrationService:
         self.repository = repository
 
     def list_public_groups(self) -> list[dict[str, Any]]:
-        return [capacity_to_response(item) for item in self.repository.capacity_summary()]
+        return [capacity_to_response(item) for item in get_capacity_summary(self.repository.capacity_summary)]
 
     def create_public_registration(self, payload: dict[str, Any]) -> dict[str, Any]:
         self._assert_group_exists(payload["group_id"])
         self._assert_document_is_unique(payload["document_number"])
         self._assert_group_has_capacity(payload["group_id"])
-        return registration_to_response(self.repository.create(payload))
+        registration = registration_to_response(self.repository.create(payload))
+        invalidate_capacity_summary()
+        return registration
 
     def list_registrations(self, filters: dict[str, Any], limit: int, offset: int) -> dict[str, Any]:
         rows, total = self.repository.list(filters, limit, offset)
@@ -40,15 +43,18 @@ class RegistrationService:
         self._assert_group_exists(payload["group_id"])
         self._assert_document_is_unique(payload["document_number"], exclude_id=registration_id)
         self._assert_group_has_capacity(payload["group_id"], exclude_id=registration_id)
-        return registration_to_response(self.repository.update(registration_id, payload))
+        registration = registration_to_response(self.repository.update(registration_id, payload))
+        invalidate_capacity_summary()
+        return registration
 
     def delete_registration(self, registration_id: int) -> None:
         if self.repository.find_by_id(registration_id) is None:
             raise RegistrationNotFoundError()
         self.repository.delete(registration_id)
+        invalidate_capacity_summary()
 
     def capacity_summary(self) -> list[dict[str, Any]]:
-        return [capacity_to_response(item) for item in self.repository.capacity_summary()]
+        return [capacity_to_response(item) for item in get_capacity_summary(self.repository.capacity_summary)]
 
     def _assert_document_is_unique(self, document_number: str, exclude_id: int | None = None) -> None:
         if self.repository.find_by_document(document_number, exclude_id=exclude_id):
