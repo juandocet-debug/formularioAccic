@@ -1,33 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Registration, RegistrationFilters, RegistrationPayload, TrainingGroup } from "../../../shared/domain/types";
 import { deleteRegistration, downloadAdminFile, fetchCapacity, fetchRegistrations, updateRegistration } from "../infrastructure/adminApi";
 
 const PAGE_SIZE = 20;
+const ADMIN_CACHE_LIMIT = 200;
 
 export function useAdminPanel(token: string | null) {
   const [filters, setFilters] = useState<RegistrationFilters>({});
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [allRegistrations, setAllRegistrations] = useState<Registration[]>([]);
   const [capacity, setCapacity] = useState<TrainingGroup[]>([]);
-  const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function load(nextFilters = filters, nextOffset = offset) {
+  const filteredRegistrations = useMemo(
+    () => allRegistrations.filter((registration) => matchesFilters(registration, filters, capacity)),
+    [allRegistrations, filters, capacity],
+  );
+  const total = filteredRegistrations.length;
+  const registrations = filteredRegistrations.slice(offset, offset + PAGE_SIZE);
+
+  async function load() {
     if (!token) return;
     setLoading(true);
     setError(null);
     try {
-      const rows = await fetchRegistrations(token, nextFilters, PAGE_SIZE, nextOffset);
-      setRegistrations(rows.items);
-      setTotal(rows.total);
-      setOffset(nextOffset);
-
-      // Los cupos solo cambian al crear, editar o eliminar una inscripcion.
-      if (capacity.length === 0) {
-        const capacityRows = await fetchCapacity(token);
-        setCapacity(capacityRows);
-      }
+      // The response set is intentionally cached in the browser: filtering 200 rows is immediate.
+      const rows = await fetchRegistrations(token, {}, ADMIN_CACHE_LIMIT, 0);
+      setAllRegistrations(rows.items);
+      setOffset(0);
+      void refreshCapacity(token);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No fue posible cargar el panel.");
     } finally {
@@ -35,18 +37,24 @@ export function useAdminPanel(token: string | null) {
     }
   }
 
+  async function refreshCapacity(activeToken: string) {
+    try {
+      setCapacity(await fetchCapacity(activeToken));
+    } catch {
+      // The table is still useful while the secondary capacity request recovers.
+    }
+  }
+
   async function save(registrationId: number, payload: RegistrationPayload) {
     if (!token) return;
     await updateRegistration(token, registrationId, payload);
-    setCapacity([]);
-    await load(filters, offset);
+    await load();
   }
 
   async function remove(registrationId: number) {
     if (!token) return;
     await deleteRegistration(token, registrationId);
-    setCapacity([]);
-    await load(filters, offset);
+    await load();
   }
 
   async function download(type: "excel" | "pdf") {
@@ -54,23 +62,21 @@ export function useAdminPanel(token: string | null) {
     await downloadAdminFile(token, type === "excel" ? "/admin/exports/excel" : "/admin/exports/pdf", filters);
   }
 
-  async function showGroup(groupId: number) {
-    const nextFilters = { ...filters, group_id: String(groupId) };
-    setFilters(nextFilters);
-    await load(nextFilters, 0);
+  function showGroup(groupId: number) {
+    setFilters((current) => ({ ...current, group_id: String(groupId) }));
+    setOffset(0);
   }
 
-  async function applyFilters() {
-    await load(filters, 0);
+  function applyFilters() {
+    setOffset(0);
   }
 
-  async function nextPage() {
-    if (offset + PAGE_SIZE >= total) return;
-    await load(filters, offset + PAGE_SIZE);
+  function nextPage() {
+    if (offset + PAGE_SIZE < total) setOffset(offset + PAGE_SIZE);
   }
 
-  async function previousPage() {
-    await load(filters, Math.max(offset - PAGE_SIZE, 0));
+  function previousPage() {
+    setOffset(Math.max(offset - PAGE_SIZE, 0));
   }
 
   useEffect(() => {
@@ -96,4 +102,20 @@ export function useAdminPanel(token: string | null) {
     nextPage,
     previousPage,
   };
+}
+
+function matchesFilters(registration: Registration, filters: RegistrationFilters, capacity: TrainingGroup[]) {
+  const name = `${registration.first_name} ${registration.second_name ?? ""} ${registration.first_last_name} ${registration.second_last_name ?? ""}`.toLowerCase();
+  if (filters.name && !name.includes(filters.name.toLowerCase())) return false;
+  if (filters.document && !registration.document_number.includes(filters.document)) return false;
+  if (filters.place && !registration.place.toLowerCase().includes(filters.place.toLowerCase())) return false;
+  if (filters.group_id && registration.group_id !== Number(filters.group_id)) return false;
+  if (filters.date && registration.created_at.slice(0, 10) !== filters.date) return false;
+
+  if (filters.capacity_status && capacity.length > 0) {
+    const group = capacity.find((item) => item.group_id === registration.group_id);
+    if (filters.capacity_status === "full" && !group?.is_full) return false;
+    if (filters.capacity_status === "available" && group?.is_full) return false;
+  }
+  return true;
 }
