@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Registration, RegistrationFilters, RegistrationPayload, TrainingGroup } from "../../../shared/domain/types";
+import { ApiError } from "../../../shared/infrastructure/apiClient";
 import { deleteRegistration, downloadAdminFile, fetchCapacity, fetchRegistrations, updateRegistration } from "../infrastructure/adminApi";
 
 const PAGE_SIZE = 20;
@@ -12,6 +13,7 @@ export function useAdminPanel(token: string | null) {
   const [offset, setOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const retryTimer = useRef<number | null>(null);
 
   const filteredRegistrations = useMemo(
     () => allRegistrations.filter((registration) => matchesFilters(registration, filters, capacity)),
@@ -20,7 +22,7 @@ export function useAdminPanel(token: string | null) {
   const total = filteredRegistrations.length;
   const registrations = filteredRegistrations.slice(offset, offset + PAGE_SIZE);
 
-  async function load() {
+  async function load(retryAttempt = 0) {
     if (!token) return;
     setLoading(true);
     setError(null);
@@ -31,7 +33,17 @@ export function useAdminPanel(token: string | null) {
       setOffset(0);
       void refreshCapacity(token);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "No fue posible cargar el panel.");
+      const isTransient = requestError instanceof ApiError && requestError.status === 0;
+      setError(
+        isTransient
+          ? "Conexion temporalmente interrumpida. Intentando recuperar las respuestas..."
+          : requestError instanceof Error
+            ? requestError.message
+            : "No fue posible cargar el panel.",
+      );
+      if (isTransient && retryAttempt < 3) {
+        retryTimer.current = window.setTimeout(() => void load(retryAttempt + 1), 2500);
+      }
     } finally {
       setLoading(false);
     }
@@ -81,6 +93,9 @@ export function useAdminPanel(token: string | null) {
 
   useEffect(() => {
     void load();
+    return () => {
+      if (retryTimer.current !== null) window.clearTimeout(retryTimer.current);
+    };
   }, [token]);
 
   return {

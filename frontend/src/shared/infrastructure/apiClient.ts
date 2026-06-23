@@ -25,7 +25,9 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, tok
       const body = await response.json();
       message = normalizeApiError(body.detail, response.status, message);
     } catch {
-      message = response.statusText || message;
+      message = response.status >= 500
+        ? "El servidor esta respondiendo lentamente. El sistema volvera a intentarlo."
+        : response.statusText || message;
     }
     throw new ApiError(message, response.status);
   }
@@ -38,15 +40,13 @@ async function fetchWithRetry(url: string, options: RequestInit): Promise<Respon
   const method = (options.method ?? "GET").toUpperCase();
   const retryable = method === "GET";
   const delays = [1200, 2800, 5000];
-  let lastNetworkError: unknown;
 
   for (let attempt = 0; attempt <= delays.length; attempt += 1) {
     try {
       const response = await fetch(url, options);
       const shouldRetry = retryable && response.status >= 500 && attempt < delays.length;
       if (!shouldRetry) return response;
-    } catch (error) {
-      lastNetworkError = error;
+    } catch {
       if (!retryable || attempt === delays.length) {
         throw new ApiError("El servidor esta iniciando o no responde. Espera unos segundos y vuelve a intentarlo.", 0);
       }
@@ -55,9 +55,7 @@ async function fetchWithRetry(url: string, options: RequestInit): Promise<Respon
     await wait(delays[attempt]);
   }
 
-  throw lastNetworkError instanceof Error
-    ? lastNetworkError
-    : new ApiError("No fue posible conectar con el servidor.", 0);
+  throw new ApiError("La conexion con el servidor se interrumpio temporalmente. Se reintentara automaticamente.", 0);
 }
 
 function wait(milliseconds: number) {
