@@ -5,6 +5,7 @@ from app.infrastructure.http.admin_routes import router as admin_router
 from app.infrastructure.http.auth_routes import router as auth_router
 from app.infrastructure.http.public_routes import router as public_router
 from app.infrastructure.persistence.database import initialize_database
+from app.infrastructure.postgresql.database import close_connection_pool
 from app.infrastructure.settings import get_settings
 
 
@@ -26,6 +27,11 @@ app.add_middleware(
 def startup() -> None:
     settings.validate_production_security()
     initialize_database()
+
+
+@app.on_event("shutdown")
+def shutdown() -> None:
+    close_connection_pool()
 
 
 @app.get("/api/health")

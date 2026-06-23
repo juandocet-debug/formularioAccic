@@ -1,14 +1,37 @@
-from psycopg import connect
 from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 
 from app.infrastructure.settings import get_settings
 
 
+_pool: ConnectionPool | None = None
+
+
 def get_connection():
+    return _get_pool().connection()
+
+
+def _get_pool() -> ConnectionPool:
+    global _pool
     settings = get_settings()
     if not settings.database_url:
         raise RuntimeError("DATABASE_URL no esta configurado.")
-    return connect(settings.database_url, row_factory=dict_row)
+    if _pool is None:
+        _pool = ConnectionPool(
+            conninfo=settings.database_url,
+            min_size=1,
+            max_size=5,
+            kwargs={"row_factory": dict_row},
+            open=True,
+        )
+    return _pool
+
+
+def close_connection_pool() -> None:
+    global _pool
+    if _pool is not None:
+        _pool.close()
+        _pool = None
 
 
 def initialize_postgresql_database() -> None:

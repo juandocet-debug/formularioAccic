@@ -18,11 +18,16 @@ export function useAdminPanel(token: string | null) {
     setLoading(true);
     setError(null);
     try {
-      const [rows, capacityRows] = await Promise.all([fetchRegistrations(token, nextFilters, PAGE_SIZE, nextOffset), fetchCapacity(token)]);
+      const rows = await fetchRegistrations(token, nextFilters, PAGE_SIZE, nextOffset);
       setRegistrations(rows.items);
       setTotal(rows.total);
-      setCapacity(capacityRows);
       setOffset(nextOffset);
+
+      // Los cupos solo cambian al crear, editar o eliminar una inscripcion.
+      if (capacity.length === 0) {
+        const capacityRows = await fetchCapacity(token);
+        setCapacity(capacityRows);
+      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "No fue posible cargar el panel.");
     } finally {
@@ -33,12 +38,14 @@ export function useAdminPanel(token: string | null) {
   async function save(registrationId: number, payload: RegistrationPayload) {
     if (!token) return;
     await updateRegistration(token, registrationId, payload);
+    setCapacity([]);
     await load(filters, offset);
   }
 
   async function remove(registrationId: number) {
     if (!token) return;
     await deleteRegistration(token, registrationId);
+    setCapacity([]);
     await load(filters, offset);
   }
 
