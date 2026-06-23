@@ -10,7 +10,7 @@ export class ApiError extends Error {
 }
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}, token?: string | null): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetchWithRetry(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -32,6 +32,36 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, tok
 
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
+}
+
+async function fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+  const method = (options.method ?? "GET").toUpperCase();
+  const retryable = method === "GET";
+  const delays = [1200, 2800, 5000];
+  let lastNetworkError: unknown;
+
+  for (let attempt = 0; attempt <= delays.length; attempt += 1) {
+    try {
+      const response = await fetch(url, options);
+      const shouldRetry = retryable && response.status >= 500 && attempt < delays.length;
+      if (!shouldRetry) return response;
+    } catch (error) {
+      lastNetworkError = error;
+      if (!retryable || attempt === delays.length) {
+        throw new ApiError("El servidor esta iniciando o no responde. Espera unos segundos y vuelve a intentarlo.", 0);
+      }
+    }
+
+    await wait(delays[attempt]);
+  }
+
+  throw lastNetworkError instanceof Error
+    ? lastNetworkError
+    : new ApiError("No fue posible conectar con el servidor.", 0);
+}
+
+function wait(milliseconds: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
 export function buildAdminDownloadUrl(path: string, params: URLSearchParams): string {
