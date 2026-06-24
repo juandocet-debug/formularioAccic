@@ -38,8 +38,13 @@ def initialize_postgresql_database() -> None:
     with get_connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute(
+                "SELECT 1 FROM information_schema.tables WHERE table_name = 'registrations'"
+            )
+            if cursor.fetchone():
+                return
+            cursor.execute(
                 """
-                CREATE TABLE IF NOT EXISTS registrations (
+                CREATE TABLE registrations (
                     id BIGSERIAL PRIMARY KEY,
                     first_name TEXT NOT NULL,
                     second_name TEXT,
@@ -54,21 +59,6 @@ def initialize_postgresql_database() -> None:
                 )
                 """
             )
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_registrations_group_id ON registrations(group_id)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_registrations_created_at ON registrations(created_at)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_registrations_names ON registrations(first_name, first_last_name)")
-            cursor.execute(
-                """
-                DO $$
-                BEGIN
-                    IF NOT EXISTS (
-                        SELECT 1
-                        FROM information_schema.columns
-                        WHERE table_name = 'registrations'
-                        AND column_name = 'interested_courses'
-                    ) THEN
-                        ALTER TABLE registrations ADD COLUMN interested_courses TEXT NOT NULL DEFAULT '[]';
-                    END IF;
-                END $$;
-                """
-            )
+            cursor.execute("CREATE INDEX idx_registrations_group_id ON registrations(group_id)")
+            cursor.execute("CREATE INDEX idx_registrations_created_at ON registrations(created_at)")
+            cursor.execute("CREATE INDEX idx_registrations_names ON registrations(first_name, first_last_name)")
