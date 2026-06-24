@@ -4,7 +4,7 @@ import { ApiError } from "../../../shared/infrastructure/apiClient";
 import { deleteRegistration, downloadAdminFile, fetchCapacity, fetchRegistrations, updateRegistration } from "../infrastructure/adminApi";
 
 const PAGE_SIZE = 20;
-const ADMIN_CACHE_LIMIT = 200;
+const ADMIN_CACHE_LIMIT = 1000;
 
 export function useAdminPanel(token: string | null) {
   const [filters, setFilters] = useState<RegistrationFilters>({});

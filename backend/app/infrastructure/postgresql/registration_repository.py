@@ -96,7 +96,7 @@ class PostgresqlRegistrationRepository(RegistrationRepository):
 
     def list(self, filters: dict[str, Any], limit: int, offset: int) -> tuple[list[dict[str, Any]], int]:
         where, params = self._build_filters(filters)
-        safe_limit = min(max(limit, 1), 200)
+        safe_limit = min(max(limit, 1), 1000)
         safe_offset = max(offset, 0)
 
         with get_connection() as connection:
