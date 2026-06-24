@@ -31,7 +31,7 @@ def read_filters(
 @router.get("/registrations")
 def list_registrations(
     filters: dict = Depends(read_filters),
-    limit: int = Query(default=50, ge=1, le=200),
+    limit: int = Query(default=50, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     service: RegistrationService = Depends(get_registration_service),
 ) -> dict:
