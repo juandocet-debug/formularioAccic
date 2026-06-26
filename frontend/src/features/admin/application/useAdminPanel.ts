@@ -4,7 +4,7 @@ import { ApiError } from "../../../shared/infrastructure/apiClient";
 import { deleteRegistration, downloadAdminFile, fetchCapacity, fetchRegistrations, importRegistrationsCsv, updateRegistration } from "../infrastructure/adminApi";
 
 const PAGE_SIZE = 20;
-const ADMIN_CACHE_LIMIT = 200;
+const ADMIN_CACHE_LIMIT = 600;
 
 export function useAdminPanel(token: string | null) {
   const [filters, setFilters] = useState<RegistrationFilters>({});
@@ -28,7 +28,7 @@ export function useAdminPanel(token: string | null) {
     setLoading(true);
     setError(null);
     try {
-      // The response set is intentionally cached in the browser: filtering 200 rows is immediate.
+      // The response set is intentionally cached in the browser: filtering 600 rows is immediate.
       const rows = await fetchRegistrations(token, {}, ADMIN_CACHE_LIMIT, 0);
       setAllRegistrations(rows.items);
       setOffset(0);

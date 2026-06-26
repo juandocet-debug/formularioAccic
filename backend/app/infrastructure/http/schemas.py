@@ -1,3 +1,5 @@
+import unicodedata
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.domain.courses import normalize_courses
@@ -27,8 +29,7 @@ class RegistrationInput(BaseModel):
     def validate_name_text(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZáéíóúÁÉÍÓÚñÑüÜ ")
-        if any(character not in allowed for character in value):
+        if any(not (character == " " or unicodedata.category(character).startswith("L")) for character in value):
             raise ValueError("Los nombres y apellidos solo deben contener letras y espacios.")
         return value
 
