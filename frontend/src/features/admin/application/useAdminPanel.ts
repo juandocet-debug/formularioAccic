@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Registration, RegistrationFilters, RegistrationPayload, TrainingGroup } from "../../../shared/domain/types";
 import { ApiError } from "../../../shared/infrastructure/apiClient";
-import { deleteRegistration, downloadAdminFile, fetchCapacity, fetchRegistrations, updateRegistration } from "../infrastructure/adminApi";
+import { deleteRegistration, downloadAdminFile, fetchCapacity, fetchRegistrations, importRegistrationsCsv, updateRegistration } from "../infrastructure/adminApi";
 
 const PAGE_SIZE = 20;
-const ADMIN_CACHE_LIMIT = 1000;
+const ADMIN_CACHE_LIMIT = 200;
 
 export function useAdminPanel(token: string | null) {
   const [filters, setFilters] = useState<RegistrationFilters>({});
@@ -12,6 +12,7 @@ export function useAdminPanel(token: string | null) {
   const [capacity, setCapacity] = useState<TrainingGroup[]>([]);
   const [offset, setOffset] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const retryTimer = useRef<number | null>(null);
 
@@ -74,6 +75,30 @@ export function useAdminPanel(token: string | null) {
     await downloadAdminFile(token, type === "excel" ? "/admin/exports/excel" : "/admin/exports/pdf", filters);
   }
 
+  async function importCsv(file: File) {
+    if (!token) return;
+    setLoading(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await importRegistrationsCsv(token, file);
+      const firstErrors = result.errors
+        .slice(0, 3)
+        .map((item) => `fila ${item.row ?? "-"}: ${item.message}`)
+        .join(" | ");
+      setNotice(
+        result.rejected > 0
+          ? `CSV procesado: ${result.imported} importadas y ${result.rejected} rechazadas. ${firstErrors}`
+          : `CSV procesado: ${result.imported} registros importados correctamente.`,
+      );
+      await load();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "No fue posible importar el CSV.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function showGroup(groupId: number) {
     setFilters((current) => ({ ...current, group_id: String(groupId) }));
     setOffset(0);
@@ -107,11 +132,13 @@ export function useAdminPanel(token: string | null) {
     offset,
     pageSize: PAGE_SIZE,
     error,
+    notice,
     loading,
     load,
     save,
     remove,
     download,
+    importCsv,
     showGroup,
     applyFilters,
     nextPage,

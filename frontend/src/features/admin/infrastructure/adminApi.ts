@@ -1,5 +1,5 @@
 import { apiRequest, buildAdminDownloadUrl } from "../../../shared/infrastructure/apiClient";
-import type { Registration, RegistrationFilters, RegistrationPayload, TrainingGroup } from "../../../shared/domain/types";
+import type { CsvImportResult, Registration, RegistrationFilters, RegistrationPayload, TrainingGroup } from "../../../shared/domain/types";
 
 type LoginResponse = {
   access_token: string;
@@ -49,6 +49,15 @@ export function updateRegistration(token: string, registrationId: number, payloa
 
 export function deleteRegistration(token: string, registrationId: number) {
   return apiRequest<void>(`/admin/registrations/${registrationId}`, { method: "DELETE" }, token);
+}
+
+export function importRegistrationsCsv(token: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiRequest<CsvImportResult>("/admin/registrations/import-csv", {
+    method: "POST",
+    body: formData,
+  }, token);
 }
 
 export async function downloadAdminFile(token: string, path: "/admin/exports/excel" | "/admin/exports/pdf", filters: RegistrationFilters) {

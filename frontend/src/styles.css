@@ -315,6 +315,10 @@ select:focus {
   align-items: center;
 }
 
+.hidden-file-input {
+  display: none;
+}
+
 .filters {
   background: rgba(17, 9, 35, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.14);

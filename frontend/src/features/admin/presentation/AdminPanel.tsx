@@ -1,5 +1,5 @@
-import { Download, LogOut, Pencil, RefreshCw, Save, Search, Trash2 } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { Download, LogOut, Pencil, RefreshCw, Save, Search, Trash2, Upload } from "lucide-react";
+import { ChangeEvent, FormEvent, useRef, useState } from "react";
 import { AVAILABLE_COURSES } from "../../../shared/domain/courses";
 import type { Registration, RegistrationPayload } from "../../../shared/domain/types";
 import { useAdminPanel } from "../application/useAdminPanel";
@@ -46,11 +46,21 @@ function LoginPanel({ session }: { session: Session }) {
 
 function Dashboard({ token, onSignOut }: { token: string; onSignOut: () => void }) {
   const panel = useAdminPanel(token);
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
+
+  async function onCsvSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    await panel.importCsv(file);
+  }
 
   return (
     <section className="admin-layout">
       <div className="admin-actions">
         <button className="ghost-button" onClick={() => panel.load()} title="Actualizar"><RefreshCw size={17} />Actualizar</button>
+        <button className="ghost-button" onClick={() => csvInputRef.current?.click()} title="Importar registros desde CSV"><Upload size={17} />Importar CSV</button>
+        <input ref={csvInputRef} className="hidden-file-input" type="file" accept=".csv,text/csv" onChange={onCsvSelected} />
         <button className="ghost-button" onClick={() => panel.download("excel")} title="Descargar Excel"><Download size={17} />Excel</button>
         <button className="ghost-button" onClick={() => panel.download("pdf")} title="Descargar PDF"><Download size={17} />PDF</button>
         <button className="ghost-button" onClick={onSignOut} title="Cerrar sesion"><LogOut size={17} />Salir</button>
@@ -80,7 +90,7 @@ function Dashboard({ token, onSignOut }: { token: string; onSignOut: () => void 
         <input type="date" value={panel.filters.date ?? ""} onChange={(e) => panel.setFilters({ ...panel.filters, date: e.target.value })} />
         <select value={panel.filters.group_id ?? ""} onChange={(e) => panel.setFilters({ ...panel.filters, group_id: e.target.value })}>
           <option value="">Todos los grupos</option>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((groupId) => <option key={groupId} value={groupId}>Grupo {groupId}</option>)}
+          {[1, 2, 3, 4, 5, 6, 9, 10].map((groupId) => <option key={groupId} value={groupId}>Grupo {groupId}</option>)}
         </select>
         <select value={panel.filters.capacity_status ?? ""} onChange={(e) => panel.setFilters({ ...panel.filters, capacity_status: e.target.value })}>
           <option value="">Todos los cupos</option>
@@ -91,6 +101,7 @@ function Dashboard({ token, onSignOut }: { token: string; onSignOut: () => void 
       </div>
 
       {panel.error && <p className="error">{panel.error}</p>}
+      {panel.notice && <p className="success">{panel.notice}</p>}
       <p className="muted">
         {panel.loading
           ? "Cargando respuestas..."
@@ -219,7 +230,7 @@ function RegistrationTable({
                 <td>
                   {activeDraft ? (
                     <select value={activeDraft.group_id} onChange={(e) => setDraft({ ...activeDraft, group_id: Number(e.target.value) })}>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((groupId) => <option key={groupId} value={groupId}>Grupo {groupId}</option>)}
+                      {[1, 2, 3, 4, 5, 6, 9, 10].map((groupId) => <option key={groupId} value={groupId}>Grupo {groupId}</option>)}
                     </select>
                   ) : (
                     row.group_name
@@ -229,7 +240,7 @@ function RegistrationTable({
                 <td>{new Date(row.created_at).toLocaleString("es-CO")}</td>
                 <td className="row-actions">
                   {activeDraft ? (
-                    <button className="primary-button small" title="Confirmar cambios" onClick={() => onSave(row.id, activeDraft).then(() => setEditingId(null))}><Save size={14} />Guardar</button>
+                    <button className="icon-button" title="Guardar" onClick={() => onSave(row.id, activeDraft).then(() => setEditingId(null))}><Save size={16} /></button>
                   ) : (
                     <button className="icon-button" title="Editar" onClick={() => startEdit(row)}><Pencil size={16} /></button>
                   )}

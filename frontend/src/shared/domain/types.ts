@@ -39,3 +39,15 @@ export type RegistrationFilters = {
   document?: string;
   capacity_status?: string;
 };
+
+export type CsvImportError = {
+  row: number | null;
+  document_number: string;
+  message: string;
+};
+
+export type CsvImportResult = {
+  imported: number;
+  rejected: number;
+  errors: CsvImportError[];
+};

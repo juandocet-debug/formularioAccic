@@ -2,7 +2,7 @@ from typing import Any
 
 from app.application.capacity_cache import get_capacity_summary, invalidate_capacity_summary
 from app.application.dtos import capacity_to_response, registration_to_response
-from app.domain.errors import DuplicateDocumentError, GroupFullError, GroupNotFoundError, RegistrationNotFoundError
+from app.domain.errors import DomainError, DuplicateDocumentError, GroupFullError, GroupNotFoundError, RegistrationNotFoundError
 from app.domain.groups import GROUP_CAPACITY, get_group
 from app.domain.repositories import RegistrationRepository
 
@@ -21,6 +21,30 @@ class RegistrationService:
         registration = registration_to_response(self.repository.create(payload))
         invalidate_capacity_summary()
         return registration
+
+    def import_registrations(self, rows: list[dict[str, Any]]) -> dict[str, Any]:
+        imported = 0
+        rejected: list[dict[str, Any]] = []
+
+        for row in rows:
+            row_number = row.pop("_row_number", None)
+            try:
+                self.create_public_registration(row)
+                imported += 1
+            except DomainError as error:
+                rejected.append(
+                    {
+                        "row": row_number,
+                        "document_number": row.get("document_number", ""),
+                        "message": error.message,
+                    }
+                )
+
+        return {
+            "imported": imported,
+            "rejected": len(rejected),
+            "errors": rejected,
+        }
 
     def list_registrations(self, filters: dict[str, Any], limit: int, offset: int) -> dict[str, Any]:
         rows, total = self.repository.list(filters, limit, offset)

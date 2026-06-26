@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 
 from app.application.registration_service import RegistrationService
 from app.domain.errors import DomainError
+from app.infrastructure.http.csv_importer import parse_registration_csv
 from app.infrastructure.http.dependencies import domain_error_response, get_registration_service, require_admin
 from app.infrastructure.http.exporters import build_excel, build_pdf
 from app.infrastructure.http.schemas import RegistrationInput
@@ -31,7 +32,7 @@ def read_filters(
 @router.get("/registrations")
 def list_registrations(
     filters: dict = Depends(read_filters),
-    limit: int = Query(default=50, ge=1, le=1000),
+    limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     service: RegistrationService = Depends(get_registration_service),
 ) -> dict:
@@ -61,6 +62,23 @@ def delete_registration(registration_id: int, service: RegistrationService = Dep
         service.delete_registration(registration_id)
     except DomainError as error:
         raise domain_error_response(error) from error
+
+
+@router.post("/registrations/import-csv")
+async def import_registrations_csv(
+    file: UploadFile = File(...),
+    service: RegistrationService = Depends(get_registration_service),
+) -> dict:
+    filename = (file.filename or "").lower()
+    if not filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Sube un archivo en formato CSV.")
+
+    content = await file.read()
+    rows, parse_errors = parse_registration_csv(content)
+    result = service.import_registrations(rows)
+    result["errors"] = parse_errors + result["errors"]
+    result["rejected"] = len(result["errors"])
+    return result
 
 
 @router.get("/exports/excel")
