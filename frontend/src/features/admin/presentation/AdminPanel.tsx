@@ -4,6 +4,8 @@ import { AVAILABLE_COURSES } from "../../../shared/domain/courses";
 import type { Registration, RegistrationPayload } from "../../../shared/domain/types";
 import { useAdminPanel } from "../application/useAdminPanel";
 
+const ADMIN_GROUP_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
 type Session = {
   token: string | null;
   error: string | null;
@@ -90,7 +92,7 @@ function Dashboard({ token, onSignOut }: { token: string; onSignOut: () => void 
         <input type="date" value={panel.filters.date ?? ""} onChange={(e) => panel.setFilters({ ...panel.filters, date: e.target.value })} />
         <select value={panel.filters.group_id ?? ""} onChange={(e) => panel.setFilters({ ...panel.filters, group_id: e.target.value })}>
           <option value="">Todos los grupos</option>
-          {[1, 2, 3, 4, 5, 6, 9, 10].map((groupId) => <option key={groupId} value={groupId}>Grupo {groupId}</option>)}
+          {ADMIN_GROUP_IDS.map((groupId) => <option key={groupId} value={groupId}>Grupo {groupId}</option>)}
         </select>
         <select value={panel.filters.capacity_status ?? ""} onChange={(e) => panel.setFilters({ ...panel.filters, capacity_status: e.target.value })}>
           <option value="">Todos los cupos</option>
@@ -230,7 +232,7 @@ function RegistrationTable({
                 <td>
                   {activeDraft ? (
                     <select value={activeDraft.group_id} onChange={(e) => setDraft({ ...activeDraft, group_id: Number(e.target.value) })}>
-                      {[1, 2, 3, 4, 5, 6, 9, 10].map((groupId) => <option key={groupId} value={groupId}>Grupo {groupId}</option>)}
+                      {ADMIN_GROUP_IDS.map((groupId) => <option key={groupId} value={groupId}>Grupo {groupId}</option>)}
                     </select>
                   ) : (
                     row.group_name

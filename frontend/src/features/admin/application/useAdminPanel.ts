@@ -29,10 +29,13 @@ export function useAdminPanel(token: string | null) {
     setError(null);
     try {
       // The response set is intentionally cached in the browser: filtering 600 rows is immediate.
-      const rows = await fetchRegistrations(token, {}, ADMIN_CACHE_LIMIT, 0);
+      const [rows, capacityRows] = await Promise.all([
+        fetchRegistrations(token, {}, ADMIN_CACHE_LIMIT, 0),
+        fetchCapacity(token),
+      ]);
       setAllRegistrations(rows.items);
+      setCapacity(capacityRows);
       setOffset(0);
-      void refreshCapacity(token);
     } catch (requestError) {
       const isTransient = requestError instanceof ApiError && requestError.status === 0;
       setError(
@@ -47,14 +50,6 @@ export function useAdminPanel(token: string | null) {
       }
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function refreshCapacity(activeToken: string) {
-    try {
-      setCapacity(await fetchCapacity(activeToken));
-    } catch {
-      // The table is still useful while the secondary capacity request recovers.
     }
   }
 
